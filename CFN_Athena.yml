@@ -63,12 +63,10 @@ Resources:
             Action:
               - 'sts:AssumeRole'
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonS3FullAccess
         - arn:aws:iam::aws:policy/AmazonAthenaFullAccess
-        - arn:aws:iam::aws:policy/AmazonSNSFullAccess
       Path: /
       Policies: ### Adds or updates an inline policy document that is embedded in the specified IAM role.
-        - PolicyName: scrt-grp-replica-TargetAccount-IAM-inline-policy
+        - PolicyName: Dormant_S3_Buckets-IAM-inline-policy
           PolicyDocument: {
             "Version": "2012-10-17",
             "Statement": [
@@ -80,8 +78,25 @@ Resources:
                   "logs:PutLogEvents"
                 ],
                 "Resource": {
-                  "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*"
+                  "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/Dormant_S3_Buckets-LambdaFunction:*"
                 }
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "sns:Publish"
+                ],
+                "Resource": {
+                  "Fn::Sub": "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:Dormant_S3_Buckets-SNS-Topic"
+                }
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "s3:GetObject",
+                  "s3:PutObject"
+                ],
+                "Resource": "*"
               }
             ]
           }

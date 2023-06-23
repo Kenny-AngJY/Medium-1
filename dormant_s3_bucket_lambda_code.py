@@ -3,6 +3,10 @@ import pandas as pd
 import time
 import sys
 import os
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 s3_client = boto3.client('s3')
 athena_client = boto3.client('athena')
@@ -22,13 +26,14 @@ def read_query_csv(bucket_name, file_name):
         resp = s3_client.get_object(Bucket=bucket_name, Key=file_name)
         
     except Exception as e:
-        print(e)
+        logger.info(e)
+        # https://dzone.com/articles/why-you-should-never-ever-logger.info-in-a-lambda-functi
         sys.exit(f"Do manually check if the file exist in the path: {file_name}.\n \
             If it exist, increase the sleep duration above accordingly. \
             Else, try running your SQL query manually on Athena to check if it encounters any error.")
         
     df = pd.read_csv(resp['Body'], sep=',')
-    print(df.head())
+    logger.info(df.head())
     
     df['last_accessed_date'] = df['last_accessed_date'].str[:10]
     df['todays_date'] = pd.Timestamp.today().strftime('%Y-%m-%d')
@@ -86,33 +91,34 @@ def lambda_handler(event, context):
         
         HTTPStatusCode = response_start['ResponseMetadata']['HTTPStatusCode']
         if HTTPStatusCode != 200:
-            print(f"HTTPStatusCode is not 200 for the 'start_query_execution' command, it is {HTTPStatusCode}.")
+            logger.info(f"HTTPStatusCode is not 200 for the 'start_query_execution' command, it is {HTTPStatusCode}.")
             return("Expected a different value for HTTPStatusCode.")
     
     except Exception as e:
-        print(e)
+        logger.info(e)
         return("Error encountered when running the 'start_query_execution' command.")
     
-    print(f"The response_start is: {response_start}")
+    logger.info(f"The response_start is: {response_start}")
     
     QueryExecutionId = response_start["QueryExecutionId"]
-    print(f"The QueryExecutionId is: {QueryExecutionId}")
+    logger.info(f"The QueryExecutionId is: {QueryExecutionId}")
     
     ### get_query_execution to obtain the s3 file where the results are stored
     response_get = athena_client.get_query_execution(QueryExecutionId=QueryExecutionId)
-    print(f"The response_get is: {response_get}")
+    logger.info(f"The response_get is: {response_get}")
     
     OutputLocation = response_get["QueryExecution"]["ResultConfiguration"]["OutputLocation"]
-    print(f"The OutputLocation is: {OutputLocation}")
+    logger.info(f"The OutputLocation is: {OutputLocation}")
     
     # Start finding at position 5 because "s3://" is 5 characters long
     file_path_in_bucket = OutputLocation[OutputLocation.find("/",5)+1:]
-    print(f"file_path_in_bucket is: {file_path_in_bucket}")
+    logger.info(f"file_path_in_bucket is: {file_path_in_bucket}")
 
     OutputLocation_temp = OutputLocation[OutputLocation.find("/",4)+1:]
     loc = OutputLocation_temp.find("/")
     bucket_name = OutputLocation_temp[:loc]
+    logger.info(f"The bucket name is: {bucket_name}")
 
     read_query_csv(bucket_name, file_path_in_bucket)
     
-    print("Lambda Function ended.")
+    logger.info("Lambda Function ended.")
