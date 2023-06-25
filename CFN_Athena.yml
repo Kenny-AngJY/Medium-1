@@ -135,7 +135,7 @@ Resources:
                     "lambda:InvokeFunction"
                   ],
                   "Resource": {
-                    "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*"
+                    "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:Dormant_S3_Buckets-LambdaFunction"
                   }
                 }
               ]
