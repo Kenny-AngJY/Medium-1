@@ -5,6 +5,14 @@ locals {
     CreatedFrom = "Terraform"
   }
   region_account_id = "${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}"
+
+  # offset is set as 5, because "s3://" is 5 characters long
+  substring = "${substr(var.S3PathAthenaQuery, 5, length(var.S3PathAthenaQuery))}"
+  s3_arn = format("arn:aws:s3:::%s*", local.substring)
+}
+
+output "s3_arn" {
+  value = local.s3_arn
 }
 
 
@@ -39,9 +47,15 @@ resource "aws_iam_role" "LambdaIAMRole" {
           "Effect": "Allow",
           "Action": [
             "s3:GetObject",
-            "s3:PutObject"
           ],
           "Resource": "*"
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:PutObject"
+          ],
+          "Resource": local.s3_arn
         }
       ]
     })
@@ -111,7 +125,7 @@ resource "aws_scheduler_schedule" "my_scheduler_schedule" {
 
 resource "aws_sns_topic" "my_SNS_topic" {
   name              = "Dormant_S3_Buckets-SNS-Topic"
-  # kms_master_key_id = "alias/aws/sns"
+  kms_master_key_id = "alias/aws/sns"
 }
 
 resource "aws_sns_topic_subscription" "sns_email_target" {
